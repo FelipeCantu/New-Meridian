@@ -48,7 +48,7 @@ export default function Scene3D() {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.setSize(W, H);
-    renderer.setClearColor(0x00060e);
+    renderer.setClearColor(0x00101e);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.90;
     renderer.shadowMap.enabled = true;
@@ -58,7 +58,7 @@ export default function Scene3D() {
     // ── SCENE ─────────────────────────────────────────────
     const scene = new THREE.Scene();
     // Deep ocean fog — dense, blue-black
-    scene.fog = new THREE.FogExp2(0x00060e, 0.048);
+    scene.fog = new THREE.FogExp2(0x00101e, 0.042);  // slightly less dense, more teal-blue
 
     const camera = new THREE.PerspectiveCamera(55, W / H, 0.05, 300);
     camera.position.set(0, 0.6, 8.5);
@@ -77,9 +77,21 @@ export default function Scene3D() {
     // ════════════════════════════════
     //  LIGHTING
     // ════════════════════════════════
-    scene.add(new THREE.AmbientLight(0x020810, 3.0));
+    // Deep ocean ambient — cool blue-teal wash
+    scene.add(new THREE.AmbientLight(0x041826, 4.5));
 
-    // Warm Edison bulb — primary light source
+    // Filtered sunlight from the surface above — blue-green shaft
+    const surfaceLight = new THREE.DirectionalLight(0x40a0c0, 1.6);
+    surfaceLight.position.set(2, 20, 5);
+    surfaceLight.castShadow = true;
+    surfaceLight.shadow.mapSize.set(1024, 1024);
+    scene.add(surfaceLight);
+
+    // Floor bounce — subtle teal from below (seafloor scatter)
+    const floorBounce = new THREE.HemisphereLight(0x001820, 0x002810, 1.2);
+    scene.add(floorBounce);
+
+    // Warm Edison bulb — primary light source on the head
     const bulbPt = new THREE.PointLight(0xffe8a0, 18, 50);
     bulbPt.position.set(0, 4.0, 0);
     bulbPt.castShadow = true;
@@ -88,33 +100,50 @@ export default function Scene3D() {
     scene.add(bulbPt);
 
     // Warm key — rakes across ceramic glaze from front-top
-    const keyLight = new THREE.DirectionalLight(0xffd090, 2.2);
+    const keyLight = new THREE.DirectionalLight(0xffd090, 1.8);
     keyLight.position.set(-2, 8, 9);
     keyLight.castShadow = true;
     scene.add(keyLight);
 
-    // Cool back rim — separates head from the dark
-    const rimBack = new THREE.DirectionalLight(0x1a5080, 1.2);
+    // Cool back rim — deep teal/blue separates head from darkness
+    const rimBack = new THREE.DirectionalLight(0x0a4870, 1.6);
     rimBack.position.set(0, 3, -12);
     scene.add(rimBack);
 
-    // Side fill — detail on unlit side
-    const sideFill = new THREE.DirectionalLight(0x0a1020, 0.8);
+    // Side fill — subtle blue from the right
+    const sideFill = new THREE.DirectionalLight(0x061828, 1.0);
     sideFill.position.set(9, 2, 4);
     scene.add(sideFill);
 
-    // Drifting caustic lights — underwater shimmer
-    const causticA = new THREE.PointLight(0x003860, 6, 32);
-    causticA.position.set(4, -1, 6);
+    // Drifting caustic lights — 6 shimmering underwater light patches
+    const causticA = new THREE.PointLight(0x006496, 9, 38);
+    causticA.position.set(4, 2, 6);
     scene.add(causticA);
-    const causticB = new THREE.PointLight(0x004870, 5, 28);
-    causticB.position.set(-5, 1, 5);
+    const causticB = new THREE.PointLight(0x0080b0, 8, 34);
+    causticB.position.set(-5, 3, 5);
     scene.add(causticB);
-    const causticC = new THREE.PointLight(0x002848, 4, 24);
-    causticC.position.set(0, -3, 2);
+    const causticC = new THREE.PointLight(0x004870, 7, 30);
+    causticC.position.set(0, 1, 2);
     scene.add(causticC);
+    const causticD = new THREE.PointLight(0x20a0b8, 6, 28);
+    causticD.position.set(6, -2, -3);
+    scene.add(causticD);
+    const causticE = new THREE.PointLight(0x005878, 7, 32);
+    causticE.position.set(-4, -1, -4);
+    scene.add(causticE);
+    const causticF = new THREE.PointLight(0x008898, 5, 24);
+    causticF.position.set(2, 4, -6);
+    scene.add(causticF);
 
-    // Interior glow
+    // Coral/reef glow — warm bioluminescent accent from floor level
+    const reefGlow = new THREE.PointLight(0xff4060, 2.5, 18);
+    reefGlow.position.set(-6, -5.5, 4);
+    scene.add(reefGlow);
+    const reefGlow2 = new THREE.PointLight(0x40d0c0, 2.0, 16);
+    reefGlow2.position.set(7, -5.5, -3);
+    scene.add(reefGlow2);
+
+    // Interior glow (scroll-triggered)
     const interiorPt = new THREE.PointLight(0x80ffee, 0, 18);
     interiorPt.position.set(0, 0.8, 0);
     scene.add(interiorPt);
@@ -199,37 +228,6 @@ export default function Scene3D() {
     }
 
     // ════════════════════════════════
-    //  BRANCHES from crown
-    // ════════════════════════════════
-    const branchMat = new THREE.MeshStandardMaterial({ color: 0x14100a, roughness: 0.97 });
-
-    function makeBranch(start: THREE.Vector3, dir: THREE.Vector3, len: number, rad: number, depth: number) {
-      if (depth <= 0 || len < 0.06) return;
-      const end = start.clone().addScaledVector(dir, len);
-      const mid = start.clone().add(end).multiplyScalar(0.5);
-      const b = new THREE.Mesh(new THREE.CylinderGeometry(rad * 0.55, rad, len, 5, 1), branchMat);
-      b.position.copy(mid);
-      b.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
-      b.castShadow = true;
-      scene.add(b);
-      const kids = depth === 1 ? 2 : 3;
-      for (let i = 0; i < kids; i++) {
-        const tw = (i / kids) * Math.PI * 2 + rng() * 1.1;
-        const sp = 0.36 + rng() * 0.54;
-        makeBranch(end,
-          new THREE.Vector3(dir.x + Math.cos(tw) * sp, dir.y + 0.25 + rng() * 0.30, dir.z + Math.sin(tw) * sp).normalize(),
-          len * (0.60 + rng() * 0.14), rad * 0.58, depth - 1
-        );
-      }
-    }
-    for (let i = 0; i < 7; i++) {
-      const ang = (i / 7) * Math.PI * 2;
-      makeBranch(new THREE.Vector3(0, 4.0, 0),
-        new THREE.Vector3(Math.cos(ang) * 0.28, 1.0, Math.sin(ang) * 0.28).normalize(),
-        2.5, 0.062, 4);
-    }
-
-    // ════════════════════════════════
     //  OCEAN FLOOR
     // ════════════════════════════════
     // Dark sandy/rocky seabed
@@ -241,36 +239,32 @@ export default function Scene3D() {
     }
     floorGeo.computeVertexNormals();
     const floor = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({
-      color: 0x1a2030, roughness: 0.98, metalness: 0.0,
+      color: 0x18281a,   // dark sandy green — algae-covered seabed
+      roughness: 0.96, metalness: 0.0,
+      emissive: new THREE.Color(0x040a04), emissiveIntensity: 0.5,
     }));
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -6.5;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Scattered rocks on the floor
-    const rockMat = new THREE.MeshStandardMaterial({ color: 0x2a3040, roughness: 0.95 });
-    const rockPositions = [
-      [-6, -6, 3, 0.8], [7, -6, 2, 1.1], [-4, -6, -3, 0.6], [5, -6, -4, 0.9],
-      [-8, -6, -1, 1.3], [3, -6, 6, 0.7], [-2, -6, -6, 1.0], [8, -6, -3, 0.5],
-      [0, -6, 8, 1.2], [-5, -6, 6, 0.8],
-    ] as [number, number, number, number][];
-    rockPositions.forEach(([rx, ry, rz, rs]) => {
-      const geo = new THREE.DodecahedronGeometry(rs, 1);
-      // Distort for organic rock shape
-      const rv = geo.attributes.position.array as Float32Array;
-      for (let i = 0; i < rv.length; i += 3) {
-        rv[i]   += (rng() - 0.5) * rs * 0.35;
-        rv[i+1] += (rng() - 0.5) * rs * 0.25;
-        rv[i+2] += (rng() - 0.5) * rs * 0.35;
-      }
-      geo.computeVertexNormals();
-      const rock = new THREE.Mesh(geo, rockMat);
-      rock.position.set(rx, ry + rs * 0.5, rz);
-      rock.rotation.set(rng() * Math.PI, rng() * Math.PI, rng() * Math.PI);
-      rock.receiveShadow = true;
-      rock.castShadow = true;
-      scene.add(rock);
+    // Rocks — pre-seed random positions, then fill when rock.glb loads
+    const rockSpawns: { x: number; z: number; sc: number; ry: number; rx: number }[] = [];
+    for (let i = 0; i < 20; i++) {
+      const a = rng() * Math.PI * 2, r = 2.5 + rng() * 11;
+      rockSpawns.push({ x: Math.cos(a) * r, z: Math.sin(a) * r,
+        sc: 0.55 + rng() * 1.5, ry: rng() * Math.PI * 2, rx: (rng() - 0.5) * 0.3 });
+    }
+    gltfLoader.load('/rock.glb', (gltf) => {
+      const tmpl = gltf.scene;
+      rockSpawns.forEach(p => {
+        const rock = tmpl.clone(true);
+        rock.traverse(c => { if ((c as THREE.Mesh).isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+        rock.scale.setScalar(p.sc);
+        rock.rotation.set(p.rx, p.ry, 0);
+        rock.position.set(p.x, -6.5, p.z);
+        scene.add(rock);
+      });
     });
 
     // ════════════════════════════════
@@ -310,53 +304,124 @@ export default function Scene3D() {
       .forEach(([kx, kz]) => makeKelp(kx + (rng()-0.5)*0.8, kz + (rng()-0.5)*0.8, 2.5 + rng() * 2.0));
 
     // ════════════════════════════════
-    //  CORAL
+    //  CORAL — real GLB from Hyper3D
     // ════════════════════════════════
-    const coralPalette = [0xff4060, 0xff8020, 0xffcc30, 0xe040a0, 0x40d0c0, 0xffffff];
+    // Color tints for coral variety — vivid reef colors
+    const coralTints = [0xff3050, 0xff7020, 0xffcc20, 0xe030a0, 0x30d0b0, 0xffffff, 0xff60c0, 0x60e0c0];
 
-    function makeCoral(cx: number, cz: number, baseColor: number) {
-      const g = new THREE.Group();
-      const mat = new THREE.MeshStandardMaterial({
-        color: baseColor,
-        emissive: new THREE.Color(baseColor).multiplyScalar(0.25),
-        emissiveIntensity: 0.8,
-        roughness: 0.75,
+    const coralSpawns: { x: number; z: number; sc: number; ry: number; tint: number }[] = [];
+    for (let i = 0; i < 18; i++) {
+      const a = rng() * Math.PI * 2, r = 3 + rng() * 10;
+      coralSpawns.push({ x: Math.cos(a) * r, z: Math.sin(a) * r,
+        sc: 0.40 + rng() * 0.90, ry: rng() * Math.PI * 2,
+        tint: coralTints[i % coralTints.length] });
+    }
+
+    gltfLoader.load('/coral.glb', (gltf) => {
+      const tmpl = gltf.scene;
+      coralSpawns.forEach(p => {
+        const coral = tmpl.clone(true);
+        const tintCol = new THREE.Color(p.tint);
+        coral.traverse(c => {
+          if ((c as THREE.Mesh).isMesh) {
+            const m = c as THREE.Mesh;
+            m.castShadow = true;
+            m.receiveShadow = true;
+            // Apply vivid tint — corals should pop with saturated colour
+            const orig = Array.isArray(m.material) ? m.material[0] : m.material;
+            const mat = (orig as THREE.MeshStandardMaterial).clone() as THREE.MeshStandardMaterial;
+            mat.color.lerp(tintCol, 0.75);
+            mat.emissive.copy(tintCol).multiplyScalar(0.18);
+            mat.emissiveIntensity = 1.2;
+            mat.roughness = Math.max(0, mat.roughness - 0.1);
+            mat.needsUpdate = true;
+            m.material = mat;
+          }
+        });
+        coral.scale.setScalar(p.sc);
+        coral.rotation.y = p.ry;
+        coral.position.set(p.x, -6.5, p.z);
+        scene.add(coral);
       });
-      // Central trunk
-      const trunkH = 0.4 + rng() * 0.5;
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.07, trunkH, 5), mat);
-      trunk.position.set(0, trunkH / 2, 0);
-      g.add(trunk);
-      // Branches
-      const numArms = 3 + Math.floor(rng() * 4);
-      for (let a = 0; a < numArms; a++) {
-        const armAng = (a / numArms) * Math.PI * 2 + rng() * 0.5;
-        const armLen = 0.2 + rng() * 0.35;
-        const armDir = new THREE.Vector3(
-          Math.cos(armAng) * 0.7, 0.6 + rng() * 0.4, Math.sin(armAng) * 0.7
-        ).normalize();
-        const armEnd = new THREE.Vector3(0, trunkH, 0).addScaledVector(armDir, armLen);
-        const armMid = new THREE.Vector3(0, trunkH, 0).add(armEnd).multiplyScalar(0.5);
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.03, armLen, 4), mat);
-        arm.position.copy(armMid);
-        arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), armDir);
-        g.add(arm);
-        // Tip ball
-        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 5), mat);
-        tip.position.copy(armEnd);
-        g.add(tip);
-      }
-      g.position.set(cx, -6.5, cz);
-      const sc = 0.7 + rng() * 1.2;
-      g.scale.setScalar(sc);
-      scene.add(g);
-    }
+    });
 
-    for (let ci = 0; ci < 22; ci++) {
-      const ang = rng() * Math.PI * 2;
-      const rad = 4 + rng() * 9;
-      makeCoral(Math.cos(ang) * rad, Math.sin(ang) * rad, coralPalette[Math.floor(rng() * coralPalette.length)]);
+    // ════════════════════════════════
+    //  SEA TURTLE
+    // ════════════════════════════════
+    gltfLoader.load('/turtle.glb', (gltf) => {
+      const turtleScene = gltf.scene;
+      turtleScene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          m.castShadow = true;
+          m.receiveShadow = true;
+        }
+      });
+      const tWrapper = new THREE.Group();
+      tWrapper.add(turtleScene);
+      tWrapper.scale.setScalar(2.4);  // large, majestic
+      const tAng = rng() * Math.PI * 2;
+      const tRx  = 10 + rng() * 4;
+      const tRz  = 9  + rng() * 4;
+      const tBob = rng() * Math.PI * 2;
+      tWrapper.position.set(tRx * Math.cos(tAng), -2.5, tRz * Math.sin(tAng));
+      scene.add(tWrapper);
+      turtleData = { g: tWrapper, rx: tRx, rz: tRz, ang: tAng, spd: 0.032, baseY: -2.5, bob: tBob };
+    });
+
+    // ════════════════════════════════
+    //  STARFISH — ocean floor scatter
+    // ════════════════════════════════
+    const starfishSpawns: { x: number; z: number; sc: number; ry: number }[] = [];
+    for (let i = 0; i < 8; i++) {
+      const a = rng() * Math.PI * 2, r = 3 + rng() * 9;
+      starfishSpawns.push({
+        x: Math.cos(a) * r, z: Math.sin(a) * r,
+        sc: 0.30 + rng() * 0.45, ry: rng() * Math.PI * 2,
+      });
     }
+    gltfLoader.load('/starfish.glb', (gltf) => {
+      const tmpl = gltf.scene;
+      starfishSpawns.forEach(p => {
+        const sf = tmpl.clone(true);
+        sf.traverse(c => {
+          if ((c as THREE.Mesh).isMesh) {
+            const m = c as THREE.Mesh;
+            m.castShadow = true;
+            m.receiveShadow = true;
+          }
+        });
+        sf.scale.setScalar(p.sc);
+        sf.rotation.y = p.ry;
+        sf.position.set(p.x, -6.35, p.z);   // just above the seabed
+        scene.add(sf);
+      });
+    });
+
+    // ════════════════════════════════
+    //  SHIPWRECK — far background
+    // ════════════════════════════════
+    gltfLoader.load('/shipwreck.glb', (gltf) => {
+      const wreck = gltf.scene;
+      wreck.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const m = child as THREE.Mesh;
+          m.castShadow = true;
+          m.receiveShadow = true;
+          // Deep-water colour shift — cool desaturated blue-green
+          const orig = Array.isArray(m.material) ? m.material[0] : m.material;
+          const mat = (orig as THREE.MeshStandardMaterial).clone() as THREE.MeshStandardMaterial;
+          mat.color.lerp(new THREE.Color(0x1a3a4a), 0.35);
+          mat.roughness = Math.min(1, (mat.roughness || 0.8) + 0.1);
+          mat.needsUpdate = true;
+          m.material = mat;
+        }
+      });
+      wreck.scale.setScalar(8.5);
+      wreck.rotation.set(0, Math.PI * 0.75, 0.12);  // tilted as if settled on seabed
+      wreck.position.set(-10, -5.8, -18);            // far back, resting on the floor
+      scene.add(wreck);
+    });
 
     // ════════════════════════════════
     //  REALISTIC FISH
@@ -374,6 +439,14 @@ export default function Scene3D() {
       0x20a0c0,  // Teal
       0xc040a0,  // Magenta
     ];
+
+    // ── Turtle orbit data ──────────────────────────────────
+    interface TurtleData {
+      g: THREE.Group;
+      rx: number; rz: number; ang: number; spd: number;
+      baseY: number; bob: number;
+    }
+    let turtleData: TurtleData | null = null;
 
     interface FishData {
       g: THREE.Group;
@@ -609,22 +682,43 @@ export default function Scene3D() {
     scene.add(water);
 
     // ════════════════════════════════
-    //  GOD RAYS — light shafts from above
+    //  GOD RAYS — animated light shafts
     // ════════════════════════════════
-    for (let ri = 0; ri < 8; ri++) {
-      const rayGeo = new THREE.PlaneGeometry(0.25 + rng() * 0.3, 22);
-      const ray = new THREE.Mesh(rayGeo, new THREE.MeshBasicMaterial({
-        color: 0xfff0c0,
+    interface RayData {
+      mesh: THREE.Mesh;
+      mat: THREE.MeshBasicMaterial;
+      baseX: number; baseZ: number;
+      phase: number; freq: number;
+      peakOpacity: number; tiltZ: number; tiltY: number;
+    }
+    const rays: RayData[] = [];
+    for (let ri = 0; ri < 12; ri++) {
+      const w = 0.18 + rng() * 0.45;
+      const rayGeo = new THREE.PlaneGeometry(w, 24 + rng() * 6);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xc8e8ff,
         transparent: true,
-        opacity: 0.010 + rng() * 0.018,
+        opacity: 0,
         side: THREE.DoubleSide,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
-      }));
-      ray.position.set(-4 + rng() * 8, 3.0, -3 + rng() * 6);
-      ray.rotation.z = (rng() - 0.5) * 0.25;
-      ray.rotation.y = rng() * Math.PI;
+      });
+      const ray = new THREE.Mesh(rayGeo, mat);
+      const bx = -6 + rng() * 12;
+      const bz = -5 + rng() * 10;
+      ray.position.set(bx, 4.0, bz);
+      const tiltZ = (rng() - 0.5) * 0.30;
+      const tiltY = rng() * Math.PI;
+      ray.rotation.set(0, tiltY, tiltZ);
       scene.add(ray);
+      rays.push({
+        mesh: ray, mat,
+        baseX: bx, baseZ: bz,
+        phase: rng() * Math.PI * 2,
+        freq: 0.18 + rng() * 0.45,    // how fast it pulses
+        peakOpacity: 0.028 + rng() * 0.055,
+        tiltZ, tiltY,
+      });
     }
 
     // ════════════════════════════════
@@ -722,7 +816,7 @@ export default function Scene3D() {
       ipMat.opacity              = iAmt * 0.90;
       innerMat.emissiveIntensity = 0.5 + iAmt * 5.0;
       renderer.toneMappingExposure          = 0.90 + iAmt * 1.20;
-      (scene.fog as THREE.FogExp2).density  = 0.048 - iAmt * 0.028;
+      (scene.fog as THREE.FogExp2).density  = 0.042 - iAmt * 0.022;
       bloom.strength                        = 1.10 + iAmt * 2.40;
     }
 
@@ -769,10 +863,26 @@ export default function Scene3D() {
       bulbPt.intensity = 11 + pulse * 7;
       (bulbMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 6.0 + pulse * 3.0;
 
-      // Caustic drift
-      causticA.position.set(4  + Math.sin(t * 0.58) * 3.0, -1 + Math.sin(t * 0.32) * 0.8, 6 + Math.cos(t * 0.42) * 2.5);
-      causticB.position.set(-5 + Math.cos(t * 0.51) * 2.8,  1 + Math.sin(t * 0.44) * 0.6, 5 + Math.sin(t * 0.67) * 2.0);
-      causticC.position.set(Math.sin(t * 0.37) * 4.0,      -3 + Math.cos(t * 0.29) * 1.0, 2 + Math.cos(t * 0.55) * 3.0);
+      // Caustic drift — 6 roving light patches simulating filtered surface ripple
+      causticA.position.set( 4 + Math.sin(t * 0.58) * 3.5,  2 + Math.sin(t * 0.32) * 1.2,  6 + Math.cos(t * 0.42) * 2.5);
+      causticB.position.set(-5 + Math.cos(t * 0.51) * 3.0,  3 + Math.sin(t * 0.44) * 0.8,  5 + Math.sin(t * 0.67) * 2.2);
+      causticC.position.set( Math.sin(t * 0.37) * 4.2,      1 + Math.cos(t * 0.29) * 1.0,  2 + Math.cos(t * 0.55) * 3.0);
+      causticD.position.set( 6 + Math.cos(t * 0.43) * 2.8, -2 + Math.sin(t * 0.61) * 0.9, -3 + Math.sin(t * 0.38) * 2.0);
+      causticE.position.set(-4 + Math.sin(t * 0.66) * 2.5, -1 + Math.cos(t * 0.48) * 0.7, -4 + Math.cos(t * 0.52) * 2.4);
+      causticF.position.set( 2 + Math.cos(t * 0.35) * 3.2,  4 + Math.sin(t * 0.27) * 1.1, -6 + Math.sin(t * 0.72) * 1.8);
+      // Reef glows pulse gently like bioluminescence
+      reefGlow.intensity  = 2.0 + Math.sin(t * 1.1) * 0.8;
+      reefGlow2.intensity = 1.8 + Math.cos(t * 0.9) * 0.6;
+
+      // God ray beams — each pulses independently at its own frequency & phase
+      rays.forEach(r => {
+        // Smooth sinusoidal pulse — clamp to 0 so rays fully disappear between flashes
+        const pulse = Math.max(0, Math.sin(t * r.freq + r.phase));
+        // Slow horizontal drift so the beam wanders slightly
+        r.mesh.position.x = r.baseX + Math.sin(t * 0.12 + r.phase) * 1.4;
+        r.mesh.position.z = r.baseZ + Math.cos(t * 0.09 + r.phase) * 1.0;
+        r.mat.opacity = pulse * pulse * r.peakOpacity;  // squared = sharper flash onset
+      });
 
       // Water ripple
       const wVerts = waterGeo.attributes.position.array as Float32Array;
@@ -798,6 +908,21 @@ export default function Scene3D() {
         // Gentle body roll when banking through a turn
         f.g.rotation.z = Math.sin(t * 1.8 + f.phase) * 0.08;
       });
+
+      // Sea turtle — slow graceful orbit
+      if (turtleData) {
+        turtleData.ang += turtleData.spd * 0.008;
+        turtleData.g.position.set(
+          turtleData.rx * Math.cos(turtleData.ang),
+          turtleData.baseY + Math.sin(t * 0.28 + turtleData.bob) * 0.55,
+          turtleData.rz * Math.sin(turtleData.ang)
+        );
+        // Face the direction of travel
+        turtleData.g.rotation.y = -turtleData.ang - Math.PI / 2;
+        // Subtle body tilt — turtles bank gently
+        turtleData.g.rotation.z = Math.sin(t * 0.5) * 0.06;
+        turtleData.g.rotation.x = Math.sin(t * 0.28 + turtleData.bob) * 0.04;
+      }
 
       // Kelp sway
       kelpData.forEach((kd, ki) => {
