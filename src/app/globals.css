@@ -126,8 +126,9 @@ nav {
   align-items: center;
   justify-content: space-between;
   opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 0.8s ease, transform 0.8s ease;
+  transform: translateY(-16px);
+  transition: opacity 1.0s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 1.0s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 nav.show {
@@ -135,6 +136,18 @@ nav.show {
   transform: translateY(0);
   pointer-events: all;
 }
+/* Nav links slide in with micro-stagger */
+.nav-links li {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.3s;
+}
+nav.show .nav-links li:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0.15s; }
+nav.show .nav-links li:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.23s; }
+nav.show .nav-links li:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 0.31s; }
+nav.show .nav-links li:nth-child(4) { opacity: 1; transform: translateY(0); transition-delay: 0.39s; }
 .nav-logo {
   font-family: var(--font-cinzel), serif;
   font-size: 13px;
@@ -165,17 +178,19 @@ nav.show {
   position: fixed;
   right: 32px;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) translateX(18px);
   z-index: 100;
   display: flex;
   flex-direction: column;
   gap: 14px;
   opacity: 0;
-  transition: opacity 0.6s;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 #dots.show {
   opacity: 1;
+  transform: translateY(-50%) translateX(0);
   pointer-events: all;
 }
 .dot {
@@ -185,12 +200,14 @@ nav.show {
   background: rgba(120, 220, 230, 0.25);
   border: 1px solid rgba(120, 220, 230, 0.4);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: background 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .dot.on {
   background: rgba(120, 220, 230, 0.9);
-  transform: scale(1.5);
-  box-shadow: 0 0 8px rgba(80, 210, 220, 0.6);
+  transform: scale(1.6);
+  box-shadow: 0 0 10px rgba(80, 210, 220, 0.7), 0 0 3px rgba(80, 210, 220, 0.9);
 }
 
 /* ── SCROLL HINT ── */
@@ -203,8 +220,15 @@ nav.show {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  transition: opacity 0.6s;
+  gap: 9px;
+  padding: 14px 20px 12px;
+  background: rgba(0, 15, 35, 0.45);
+  border-radius: 40px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 0 20px rgba(60, 180, 210, 0.18), inset 0 0 0 1px rgba(120, 210, 220, 0.12);
+  opacity: 1;
+  transition: opacity 0.8s ease;
 }
 #scroll-hint.hide {
   opacity: 0;
@@ -213,32 +237,69 @@ nav.show {
 .hint-label {
   font-size: 9px;
   letter-spacing: 5px;
-  color: rgba(120, 210, 220, 0.45);
+  color: rgba(200, 240, 245, 0.75);
   text-transform: uppercase;
+  font-family: inherit;
+  text-shadow: 0 0 8px rgba(100, 210, 230, 0.6);
 }
-.hint-line {
-  width: 1px;
-  height: 48px;
-  background: linear-gradient(
-    to bottom,
-    rgba(120, 210, 220, 0.5),
-    transparent
-  );
-  animation: pulse-line 2s ease-in-out infinite;
+/* Mouse icon */
+.hint-mouse {
+  width: 22px;
+  height: 36px;
+  border: 1.5px solid rgba(180, 230, 240, 0.7);
+  border-radius: 11px;
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+  box-sizing: border-box;
+  box-shadow: 0 0 8px rgba(100, 200, 220, 0.35);
 }
-@keyframes pulse-line {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scaleY(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scaleY(0.6) translateY(12px);
-  }
+.hint-wheel {
+  width: 3px;
+  height: 7px;
+  background: rgba(160, 230, 245, 0.95);
+  border-radius: 2px;
+  animation: wheel-drop 1.9s ease-in-out infinite;
+  box-shadow: 0 0 4px rgba(120, 220, 240, 0.8);
+}
+@keyframes wheel-drop {
+  0%   { transform: translateY(0);    opacity: 1; }
+  70%  { transform: translateY(11px); opacity: 0; }
+  71%  { transform: translateY(0);    opacity: 0; }
+  100% { transform: translateY(0);    opacity: 0; }
+}
+/* Cascading chevrons */
+.hint-chevrons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.hint-chev {
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid rgba(160, 230, 245, 0.8);
+  border-bottom: 1.5px solid rgba(160, 230, 245, 0.8);
+  transform: rotate(45deg);
+  filter: drop-shadow(0 0 3px rgba(100, 210, 230, 0.6));
+}
+.hint-chev:nth-child(1) { animation: chev-fade 1.9s ease-in-out infinite 0s; }
+.hint-chev:nth-child(2) { animation: chev-fade 1.9s ease-in-out infinite 0.22s; }
+.hint-chev:nth-child(3) { animation: chev-fade 1.9s ease-in-out infinite 0.44s; }
+@keyframes chev-fade {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 1; }
 }
 
 /* ── CONTENT SECTIONS (fixed overlays) ── */
+/*
+  Sections are driven by CSS custom properties injected by applyScroll():
+    --sect-opacity : 0 → 1   (controls section wrapper alpha)
+    --sect-ty      : 20px → 0 (controls section wrapper vertical lift)
+  Children animate independently via staggered transitions that activate
+  when the parent reaches --sect-opacity above a threshold (handled via
+  the .on class toggled at the midpoint of the visible range).
+*/
 .section {
   position: fixed;
   inset: 0;
@@ -246,11 +307,62 @@ nav.show {
   display: flex;
   flex-direction: column;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.9s ease;
+  /* driven by JS-injected custom properties */
+  opacity: var(--sect-opacity, 0);
+  transform: translateY(var(--sect-ty, 18px));
+  transition: opacity 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: opacity, transform;
 }
-.section.on {
+
+/* Children slide-in animation — triggered when section gets .on class.
+   Each direct child inherits a stagger via --delay set inline, or falls
+   back to a position-based delay ladder defined below. */
+.section > *,
+.section .album-block > *,
+.section .album-block .cta-btn {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.70s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 0.70s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Stagger ladder for direct section children */
+.section > *:nth-child(1) { transition-delay: 0.05s; }
+.section > *:nth-child(2) { transition-delay: 0.17s; }
+.section > *:nth-child(3) { transition-delay: 0.29s; }
+.section > *:nth-child(4) { transition-delay: 0.41s; }
+.section > *:nth-child(5) { transition-delay: 0.53s; }
+
+/* Stagger for album-block children */
+.section .album-block > *:nth-child(1) { transition-delay: 0.08s; }
+.section .album-block > *:nth-child(2) { transition-delay: 0.20s; }
+.section .album-block > *:nth-child(3) { transition-delay: 0.32s; }
+.section .album-block > *:nth-child(4) { transition-delay: 0.46s; }
+
+/* Activate children when section is considered "on" */
+.section.on > *,
+.section.on .album-block > *,
+.section.on .album-block .cta-btn {
   opacity: 1;
+  transform: translateY(0);
+}
+
+/* Tour rows get their own micro-stagger */
+.section.on .tour-row:nth-child(1) { transition-delay: 0.28s; }
+.section.on .tour-row:nth-child(2) { transition-delay: 0.38s; }
+.section.on .tour-row:nth-child(3) { transition-delay: 0.48s; }
+.section.on .tour-row:nth-child(4) { transition-delay: 0.58s; }
+.section.on .tour-row:nth-child(5) { transition-delay: 0.68s; }
+.tour-row {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.section.on .tour-row {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* HERO */
@@ -269,9 +381,11 @@ nav.show {
   color: #fff;
   text-shadow: 0 0 40px rgba(80, 210, 220, 0.5),
     0 0 100px rgba(80, 210, 220, 0.2);
-  transform: translateY(20px);
+  /* override section > * defaults with hero-specific timing */
   opacity: 0;
-  transition: opacity 1.4s ease 0.4s, transform 1.4s ease 0.4s;
+  transform: translateY(24px);
+  transition: opacity 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.35s,
+              transform 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.35s !important;
 }
 #s-hero.on .hero-band {
   opacity: 1;
@@ -283,9 +397,10 @@ nav.show {
   letter-spacing: 7px;
   color: rgba(120, 220, 235, 0.55);
   text-transform: uppercase;
-  transform: translateY(14px);
   opacity: 0;
-  transition: opacity 1.4s ease 0.9s, transform 1.4s ease 0.9s;
+  transform: translateY(14px);
+  transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.82s,
+              transform 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.82s !important;
 }
 #s-hero.on .hero-tag {
   opacity: 1;
@@ -315,6 +430,15 @@ nav.show {
   text-shadow: 0 0 60px rgba(80, 255, 255, 0.6),
     0 0 120px rgba(80, 200, 220, 0.3);
   line-height: 1.15;
+  /* threshold uses scale instead of translateY for a more expansive feel */
+  opacity: 0;
+  transform: scale(0.92) translateY(10px);
+  transition: opacity 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s,
+              transform 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s !important;
+}
+#s-threshold.on .big-text {
+  opacity: 1;
+  transform: scale(1) translateY(0);
 }
 #s-threshold .sub-text {
   margin-top: 18px;
@@ -322,6 +446,14 @@ nav.show {
   letter-spacing: 5px;
   color: rgba(120, 220, 235, 0.55);
   text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.5s,
+              transform 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.5s !important;
+}
+#s-threshold.on .sub-text {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ALBUM */
@@ -369,13 +501,40 @@ nav.show {
   background: transparent;
   cursor: pointer;
   pointer-events: all;
-  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+  transition: color 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              border-color 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              background 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: btn-breathe 3.8s ease-in-out infinite;
+}
+@keyframes btn-breathe {
+  0%, 100% { box-shadow: 0 0 0px rgba(80, 200, 220, 0); }
+  50%       { box-shadow: 0 0 14px rgba(80, 200, 220, 0.22), inset 0 0 8px rgba(80, 200, 220, 0.06); }
+}
+.cta-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(80, 200, 220, 0) 0%,
+    rgba(80, 200, 220, 0.08) 50%,
+    rgba(80, 200, 220, 0) 100%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.cta-btn:hover::before {
+  transform: translateX(100%);
 }
 .cta-btn:hover {
-  background: rgba(80, 200, 220, 0.1);
-  border-color: rgba(120, 220, 235, 0.8);
+  background: rgba(80, 200, 220, 0.08);
+  border-color: rgba(120, 220, 235, 0.75);
   color: #fff;
-  box-shadow: 0 0 20px rgba(80, 200, 220, 0.2);
+  box-shadow: 0 0 28px rgba(80, 200, 220, 0.28), inset 0 0 0 1px rgba(120, 220, 235, 0.12);
+  animation: none;
 }
 
 /* TOUR */

@@ -9,20 +9,32 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 
 const KF = [
-  { t: 0.00, p: [ 0,   0.6,  8.5], l: [0,  0.5,  0] },
-  { t: 0.10, p: [ 0,   1.6,  7.5], l: [0,  1.2,  0] },
-  { t: 0.18, p: [ 2,   3.2,  6.5], l: [0,  2.4,  0] },
-  { t: 0.28, p: [ 0,   5.0,  5.0], l: [0,  3.6,  0] },
-  { t: 0.36, p: [-2,   4.4,  5.0], l: [0,  3.2,  0] },
-  { t: 0.44, p: [ 0,   7.0,  3.0], l: [0,  4.0,  0] },
-  { t: 0.52, p: [ 0,   4.4,  1.5], l: [0,  2.8, -1] },
-  { t: 0.58, p: [ 0,   2.8,  0.2], l: [0,  2.0, -2] },
-  { t: 0.64, p: [ 0,   1.5, -0.4], l: [0,  1.0, -5] },
-  { t: 0.70, p: [ 0,   0.8, -2.8], l: [0,  0.4, -8] },
-  { t: 0.78, p: [-5,   0.4, -5.5], l: [0,  0.8,  0] },
-  { t: 0.86, p: [ 0,  -1.2,  9.0], l: [0,  0.4,  0] },
-  { t: 0.93, p: [ 0,  -2.2, 10.0], l: [0, -0.6,  0] },
-  { t: 1.00, p: [ 0,  -3.2, 11.5], l: [0, -1.2,  0] },
+  // ── HERO  — face-on, slightly low, taking in the full statue ─────────────
+  { t: 0.00, p: [  0,   0.6,  8.5], l: [0, -0.5,  0] },
+  { t: 0.06, p: [  3,   0.9,  8.2], l: [0,  0.0,  0] },  // drift right, start orbit
+
+  // ── ORBIT RIGHT — reveal the profile ─────────────────────────────────────
+  { t: 0.13, p: [  7.5, 1.4,  4.5], l: [0,  0.2,  0] },  // right profile
+  { t: 0.20, p: [  8.0, 2.6, -0.5], l: [0,  0.8,  0] },  // behind-right, rising toward crown
+
+  // ── BEHIND HEAD — epic crown silhouette against the abyss ────────────────
+  { t: 0.28, p: [  2,   5.2, -5.5], l: [0,  2.2,  0] },  // directly behind, above crown
+  { t: 0.35, p: [ -3,   5.0, -5.0], l: [0,  2.0,  0] },  // sweep behind-left, still high
+
+  // ── ORBIT LEFT — opposite profile ────────────────────────────────────────
+  { t: 0.43, p: [ -8.0, 2.2,  0.5], l: [0,  0.4,  0] },  // left-side profile
+  { t: 0.50, p: [ -5.5, 1.0,  6.0], l: [0, -0.3,  0] },  // front-left, coming around
+
+  // ── RETURN FRONT + TORSO REVEAL ──────────────────────────────────────────
+  { t: 0.57, p: [  0,   0.2,  7.0], l: [0, -1.5,  0] },  // close-up front, face & chest
+  { t: 0.63, p: [  0,  -1.2,  7.5], l: [0, -3.5,  0] },  // low angle: seabed, torso, buried effect
+
+  // ── BRIDGE TO ENDING ─────────────────────────────────────────────────────
+  { t: 0.70, p: [  0,   0.8, -2.8], l: [0,  0.4, -8] },  // pass behind into ending
+  { t: 0.78, p: [ -5,   0.4, -5.5], l: [0,  0.8,  0] },  // ── END KEPT ────
+  { t: 0.86, p: [  0,  -1.2,  9.0], l: [0,  0.4,  0] },
+  { t: 0.93, p: [  0,  -2.2, 10.0], l: [0, -0.6,  0] },
+  { t: 1.00, p: [  0,  -3.2, 11.5], l: [0, -1.2,  0] },
 ];
 
 const SECTIONS: [string, number, number, number][] = [
@@ -57,8 +69,10 @@ export default function Scene3D() {
 
     // ── SCENE ─────────────────────────────────────────────
     const scene = new THREE.Scene();
-    // Deep ocean fog — dense, blue-black
-    scene.fog = new THREE.FogExp2(0x00101e, 0.042);  // slightly less dense, more teal-blue
+    // Deep ocean fog — dense enough to fully dissolve the floor edges before
+    // they reach the camera. At density 0.055, 95% fog coverage kicks in at
+    // ~54 units — well inside the FADE_END (80 units) on the floor mesh.
+    scene.fog = new THREE.FogExp2(0x00101e, 0.055);
 
     const camera = new THREE.PerspectiveCamera(55, W / H, 0.05, 300);
     camera.position.set(0, 0.6, 8.5);
@@ -91,9 +105,9 @@ export default function Scene3D() {
     const floorBounce = new THREE.HemisphereLight(0x001820, 0x002810, 1.2);
     scene.add(floorBounce);
 
-    // Warm Edison bulb — primary light source on the head
-    const bulbPt = new THREE.PointLight(0xffe8a0, 18, 50);
-    bulbPt.position.set(0, 4.0, 0);
+    // Lantern glow — warm amber-green like old glass filtering the flame
+    const bulbPt = new THREE.PointLight(0x90cc70, 16, 48);
+    bulbPt.position.set(0, 3.8, 0);
     bulbPt.castShadow = true;
     bulbPt.shadow.mapSize.set(1024, 1024);
     bulbPt.shadow.bias = -0.002;
@@ -137,11 +151,20 @@ export default function Scene3D() {
 
     // Coral/reef glow — warm bioluminescent accent from floor level
     const reefGlow = new THREE.PointLight(0xff4060, 2.5, 18);
-    reefGlow.position.set(-6, -5.5, 4);
+    reefGlow.position.set(-6, -8.5, 4);
     scene.add(reefGlow);
     const reefGlow2 = new THREE.PointLight(0x40d0c0, 2.0, 16);
-    reefGlow2.position.set(7, -5.5, -3);
+    reefGlow2.position.set(7, -8.5, -3);
     scene.add(reefGlow2);
+
+    // Torso fill light — illuminates the statue body/shoulders below the chin
+    // Positioned directly in front of the torso at mid-depth to reveal the marble
+    const torsoFill = new THREE.PointLight(0x90c8e0, 5.0, 22);
+    torsoFill.position.set(0, -6.0, 4);
+    scene.add(torsoFill);
+    const torsoFill2 = new THREE.PointLight(0xffd090, 3.0, 18);
+    torsoFill2.position.set(-2, -7.0, 3);
+    scene.add(torsoFill2);
 
     // Interior glow (scroll-triggered)
     const interiorPt = new THREE.PointLight(0x80ffee, 0, 18);
@@ -165,9 +188,12 @@ export default function Scene3D() {
       ior: 1.52,
     });
 
+    // Head of Gaul — white glazed ceramic.
+    // The bust model includes head, neck, and a frame/base below.
+    // Positioned so the lower frame is buried in the seabed (floor at y=-9).
     gltfLoader.load("/head.glb", (gltf) => {
       const headModel = gltf.scene;
-      headModel.position.set(0, -1.5, 0);
+      headModel.position.set(0, -3.5, 0);
       headModel.rotation.y = Math.PI / 2;
       headModel.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
@@ -179,6 +205,7 @@ export default function Scene3D() {
       });
       scene.add(headModel);
     });
+
 
     // Inner shell (interior cavity glow)
     const innerPts = [
@@ -194,57 +221,112 @@ export default function Scene3D() {
     scene.add(new THREE.Mesh(new THREE.LatheGeometry(innerPts, 64), innerMat));
 
     // ════════════════════════════════
-    //  LIGHT BULB
+    //  SHIP LANTERN
     // ════════════════════════════════
-    const cord = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.012, 0.012, 7.5, 5),
-      new THREE.MeshStandardMaterial({ color: 0x060606, roughness: 0.95 })
-    );
-    cord.position.set(0, 7.75, 0);
-    scene.add(cord);
+    // Rusty chain links hanging from above
+    const chainMat = new THREE.MeshStandardMaterial({ color: 0x221810, roughness: 0.88, metalness: 0.55 });
+    const chainGroup = new THREE.Group();
+    for (let ci = 0; ci < 14; ci++) {
+      const link = new THREE.Mesh(
+        new THREE.TorusGeometry(0.052, 0.016, 5, 8),
+        chainMat
+      );
+      link.position.y = ci * -0.24;
+      link.rotation.y = ci % 2 === 0 ? 0 : Math.PI / 2;
+      chainGroup.add(link);
+    }
+    chainGroup.position.set(0, 6.5, 0);
+    scene.add(chainGroup);
 
-    const bulbMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.22, 20, 14),
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff, emissive: new THREE.Color(0xfffab0),
-        emissiveIntensity: 9.0, roughness: 0.0, metalness: 0.0,
-      })
-    );
-    bulbMesh.position.set(0, 4.0, 0);
-    scene.add(bulbMesh);
+    // Lantern wrapper — driven by sway animation
+    let lanternGroup: THREE.Group | null = null;
 
-    const haloColors    = [0xffff90, 0xffe090, 0xc0d8f0, 0x102840];
-    const haloOpacities = [0.12, 0.065, 0.030, 0.014];
-    for (let i = 0; i < 4; i++) {
-      const halo = new THREE.Mesh(
-        new THREE.SphereGeometry(0.40 + i * 0.72, 14, 10),
+    gltfLoader.load('/lantern.glb', (gltf) => {
+      const lanternScene = gltf.scene;
+      lanternScene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          (child as THREE.Mesh).castShadow = true;
+          (child as THREE.Mesh).receiveShadow = true;
+        }
+      });
+
+      // Soft glow bloom sphere inside the lantern
+      const glowMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(0.22, 10, 8),
         new THREE.MeshBasicMaterial({
-          color: haloColors[i], transparent: true, opacity: haloOpacities[i],
-          blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide,
+          color: 0xaade88, transparent: true, opacity: 0.55,
+          blending: THREE.AdditiveBlending, depthWrite: false,
         })
       );
-      halo.position.set(0, 4.0, 0);
-      scene.add(halo);
-    }
+      glowMesh.position.set(0, 0, 0);
+      lanternScene.add(glowMesh);
+
+      const wrapper = new THREE.Group();
+      wrapper.add(lanternScene);
+      wrapper.scale.setScalar(0.90);
+      wrapper.position.set(0, 3.8, 0);
+      scene.add(wrapper);
+      lanternGroup = wrapper;
+    });
 
     // ════════════════════════════════
     //  OCEAN FLOOR
     // ════════════════════════════════
-    // Dark sandy/rocky seabed
-    const floorGeo = new THREE.PlaneGeometry(80, 80, 20, 20);
-    // Gently undulate verts for organic feel
+    // Large enough that edges are always inside the fog — 500 units so no edge
+    // can ever reach the camera frustum before the fog swallows it completely.
+    // Segment count kept moderate (60x60) for reasonable vertex density at center.
+    const FLOOR_HALF = 250;
+    const FLOOR_SEGS = 60;
+    const floorGeo = new THREE.PlaneGeometry(
+      FLOOR_HALF * 2, FLOOR_HALF * 2, FLOOR_SEGS, FLOOR_SEGS
+    );
+
+    // Gently undulate only the central region — outer verts stay flat so vertex
+    // colors fade cleanly to zero without displaced silhouettes at the horizon.
     const fv = floorGeo.attributes.position.array as Float32Array;
-    for (let i = 0; i < fv.length; i += 3) {
-      fv[i + 2] += (rng() - 0.5) * 0.4; // z displacement in plane space
+    const fvCount = fv.length / 3;
+    for (let i = 0; i < fvCount; i++) {
+      const px = fv[i * 3];      // x in plane-local space (before rotation)
+      const pz = fv[i * 3 + 1]; // y in plane-local space = world z after rotation
+      const dist = Math.sqrt(px * px + pz * pz);
+      // Only undulate within the inner 30 units — decoration near the statue
+      const undulateStrength = Math.max(0, 1 - dist / 30) * 0.4;
+      fv[i * 3 + 2] += (rng() - 0.5) * undulateStrength;
     }
     floorGeo.computeVertexNormals();
+
+    // Radial vertex color fade — seabed color at center, fog color at edges.
+    // This guarantees a seamless blend regardless of fog density or camera angle.
+    const fogColor  = new THREE.Color(0x00101e); // must match scene.fog color
+    const seabedColor = new THREE.Color(0x18281a);
+    const floorColors = new Float32Array(fvCount * 3);
+    // Fade starts at 20 units from center, fully reaches fog color by 80 units.
+    // Everything beyond 80 units is pure fog color — invisible against the fog.
+    const FADE_START = 20;
+    const FADE_END   = 80;
+    for (let i = 0; i < fvCount; i++) {
+      const px = fv[i * 3];
+      const pz = fv[i * 3 + 1];
+      const dist = Math.sqrt(px * px + pz * pz);
+      const t = Math.max(0, Math.min(1, (dist - FADE_START) / (FADE_END - FADE_START)));
+      // Smoothstep for a natural rolloff
+      const smooth = t * t * (3 - 2 * t);
+      const col = seabedColor.clone().lerp(fogColor, smooth);
+      floorColors[i * 3]     = col.r;
+      floorColors[i * 3 + 1] = col.g;
+      floorColors[i * 3 + 2] = col.b;
+    }
+    floorGeo.setAttribute("color", new THREE.BufferAttribute(floorColors, 3));
+
     const floor = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({
-      color: 0x18281a,   // dark sandy green — algae-covered seabed
+      color: 0xffffff,      // white so vertex colors drive the final tint
+      vertexColors: true,
       roughness: 0.96, metalness: 0.0,
+      // Emissive is zeroed at edges by vertex color — center gets a faint algae glow
       emissive: new THREE.Color(0x040a04), emissiveIntensity: 0.5,
     }));
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -6.5;
+    floor.position.y = -9;
     floor.receiveShadow = true;
     scene.add(floor);
 
@@ -262,7 +344,7 @@ export default function Scene3D() {
         rock.traverse(c => { if ((c as THREE.Mesh).isMesh) { c.castShadow = true; c.receiveShadow = true; } });
         rock.scale.setScalar(p.sc);
         rock.rotation.set(p.rx, p.ry, 0);
-        rock.position.set(p.x, -6.5, p.z);
+        rock.position.set(p.x, -9, p.z);
         scene.add(rock);
       });
     });
@@ -293,7 +375,7 @@ export default function Scene3D() {
         g.add(blade);
         blades.push(blade);
       }
-      g.position.set(kx, -6.5, kz);
+      g.position.set(kx, -9, kz);
       scene.add(g);
       kelpData.push({ blades, phase: rng() * Math.PI * 2 });
     }
@@ -340,7 +422,7 @@ export default function Scene3D() {
         });
         coral.scale.setScalar(p.sc);
         coral.rotation.y = p.ry;
-        coral.position.set(p.x, -6.5, p.z);
+        coral.position.set(p.x, -9, p.z);
         scene.add(coral);
       });
     });
@@ -393,7 +475,7 @@ export default function Scene3D() {
         });
         sf.scale.setScalar(p.sc);
         sf.rotation.y = p.ry;
-        sf.position.set(p.x, -6.35, p.z);   // just above the seabed
+        sf.position.set(p.x, -8.85, p.z);   // just above the seabed
         scene.add(sf);
       });
     });
@@ -419,7 +501,7 @@ export default function Scene3D() {
       });
       wreck.scale.setScalar(8.5);
       wreck.rotation.set(0, Math.PI * 0.75, 0.12);  // tilted as if settled on seabed
-      wreck.position.set(-10, -5.8, -18);            // far back, resting on the floor
+      wreck.position.set(-10, -8.5, -18);            // far back, resting on the floor
       scene.add(wreck);
     });
 
@@ -800,9 +882,38 @@ export default function Scene3D() {
     let targetT = 0, smoothT = 0;
     const lookTarget = new THREE.Vector3(0, 0.5, 0);
 
+    // Soft sigmoid-like ramp: 0→1 over [lo, hi]
+    function softRamp(val: number, lo: number, hi: number): number {
+      if (val <= lo) return 0;
+      if (val >= hi) return 1;
+      const t = (val - lo) / (hi - lo);
+      // smoothstep: 3t²-2t³
+      return t * t * (3 - 2 * t);
+    }
+
     function applyScroll(st: number) {
       SECTIONS.forEach(([id, s, e, di]) => {
-        document.getElementById(id)?.classList.toggle("on", st >= s && st <= e);
+        const span = e - s;
+        const fadeW = Math.min(span * 0.18, 0.04);
+
+        // Sections that open at scroll=0 are considered "already arrived" —
+        // skip the fade-in ramp so they appear fully visible on page load.
+        const fadeIn  = s === 0 ? 1 : softRamp(st, s, s + fadeW);
+        const fadeOut = softRamp(st, e - fadeW, e);
+        const opacity = fadeIn * (1 - fadeOut);
+        // Vertical lift: section starts 16px low, arrives at 0 when fully in
+        const ty = (1 - fadeIn) * 16;
+
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.setProperty("--sect-opacity", opacity.toFixed(4));
+          el.style.setProperty("--sect-ty", `${ty.toFixed(2)}px`);
+          // Toggle .on when past the fade-in threshold
+          // (drives child stagger animations via CSS)
+          const midStart = s === 0 ? s : s + span * 0.18;
+          const midEnd   = e - span * 0.18;
+          el.classList.toggle("on", st >= midStart && st <= midEnd);
+        }
         document.querySelector(`[data-s="${di}"]`)?.classList.toggle("on", st >= s && st <= e);
       });
       document.getElementById("nav")?.classList.toggle("show", st > 0.04);
@@ -816,7 +927,8 @@ export default function Scene3D() {
       ipMat.opacity              = iAmt * 0.90;
       innerMat.emissiveIntensity = 0.5 + iAmt * 5.0;
       renderer.toneMappingExposure          = 0.90 + iAmt * 1.20;
-      (scene.fog as THREE.FogExp2).density  = 0.042 - iAmt * 0.022;
+      // Base density 0.055; interior glow section thins fog to ~0.033 at peak
+      (scene.fog as THREE.FogExp2).density  = 0.055 - iAmt * 0.022;
       bloom.strength                        = 1.10 + iAmt * 2.40;
     }
 
@@ -849,19 +961,35 @@ export default function Scene3D() {
       raf = requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
 
-      smoothT += (targetT - smoothT) * 0.055;
+      // Adaptive scroll lerp: fast when far, gentle when close — cinematic glide
+      const scrollDelta = Math.abs(targetT - smoothT);
+      const scrollLerp  = scrollDelta > 0.12 ? 0.072 : 0.036;
+      smoothT += (targetT - smoothT) * scrollLerp;
       applyScroll(smoothT);
 
-      // Camera
+      // Camera — slightly slower lerp for a more cinematic floating feel
       const sp = scrollToSpline(smoothT);
-      camera.position.lerp(posSpline.getPoint(sp), 0.07);
-      lookTarget.lerp(lookSpline.getPoint(sp), 0.06);
+      camera.position.lerp(posSpline.getPoint(sp), 0.055);
+      lookTarget.lerp(lookSpline.getPoint(sp), 0.048);
       camera.lookAt(lookTarget);
 
-      // Bulb pulse
-      const pulse = Math.sin(t * 1.8) * 0.5 + 0.5;
-      bulbPt.intensity = 11 + pulse * 7;
-      (bulbMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = 6.0 + pulse * 3.0;
+      // Lantern flicker — layered sines for irregular flame-like quality
+      const flicker = Math.sin(t * 3.1) * 0.35 + Math.sin(t * 7.3) * 0.18 + Math.sin(t * 13.7) * 0.08;
+      bulbPt.intensity = 14 + flicker * 4;
+
+      // Lantern sway — slow pendulum drift as if pushed by underwater current
+      if (lanternGroup) {
+        lanternGroup.rotation.z = Math.sin(t * 0.35) * 0.07 + Math.sin(t * 0.68) * 0.03;
+        lanternGroup.rotation.x = Math.cos(t * 0.27) * 0.04 + Math.cos(t * 0.55) * 0.02;
+        // Sway position slightly so the light casts moving shadows
+        lanternGroup.position.x = Math.sin(t * 0.35) * 0.18;
+        lanternGroup.position.z = Math.cos(t * 0.27) * 0.14;
+        bulbPt.position.x = lanternGroup.position.x;
+        bulbPt.position.z = lanternGroup.position.z;
+      }
+      // Chain follows lantern sway at reduced amplitude
+      chainGroup.rotation.z = Math.sin(t * 0.35) * 0.035;
+      chainGroup.rotation.x = Math.cos(t * 0.27) * 0.022;
 
       // Caustic drift — 6 roving light patches simulating filtered surface ripple
       causticA.position.set( 4 + Math.sin(t * 0.58) * 3.5,  2 + Math.sin(t * 0.32) * 1.2,  6 + Math.cos(t * 0.42) * 2.5);

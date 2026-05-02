@@ -62,8 +62,15 @@ export default function Home() {
 
       {/* Scroll hint */}
       <div id="scroll-hint">
-        <div className="hint-line" />
-        <div className="hint-label">Scroll</div>
+        <div className="hint-label">Scroll to explore</div>
+        <div className="hint-mouse">
+          <div className="hint-wheel" />
+        </div>
+        <div className="hint-chevrons">
+          <div className="hint-chev" />
+          <div className="hint-chev" />
+          <div className="hint-chev" />
+        </div>
       </div>
 
       {/* ─── CONTENT SECTIONS ─── */}
